@@ -2,46 +2,61 @@ import sys
 import os
 from stat import *
 
-class DirListing(object) :
-    """ Recursive mapping of directories """
+class Node(object) :
+    """ Parent class for file and directories """
 
-    def __init__(self, topLevel) :
-        if not S_ISDIR(os.stat(topLevel).st_mode) : 
-            raise Exception(topLevel + ' is not a directory')
+    def __init__(self, path, state) :
+        self.name = path.split('/')[-1]
+        self.path = path
+        self.state = state
+
+    
+class File(Node) :
+    """ Object representation of a file """
+
+    def __init__(self, path, state) :
+        Node.__init__(self, path, state)
+ 
+class Directory(Node) :
+    """ Object representation of a directory """
+
+    def __init__(self, path, state) :
+        Node.__init__(self, path, state)
         
-        self.dirlisting = {}
-        self.__readdir(topLevel, self.dirlisting)
+        self.files = {}
+        self.directories = {}
 
-
-    def __readdir(self, name, dirlist) :
-        print 'Listing ' + name
-        dname = name.split('/')[-1]
-        dirlist[dname] = {'type': 'dir'}
-        for f in os.listdir(name) :
-            fpath = name + '/' + f
+        for file in os.listdir(self.path) :
+            child = self.path + '/' + file
+            
             try :
-                st = os.stat(fpath)
+                st = os.stat(child)
 
                 if S_ISREG(st.st_mode) :
-                    dirlist[dname][f] = {'type':'file'}
+                    self.files[file] = File(child, st)
                 elif S_ISDIR(st.st_mode) :
-                    self.__readdir(fpath, dirlist[dname])
+                    self.directories[file] = Directory(child, st)
+                else :
+                    print 'ignoring ' + child
 
-            except OSError:
-                print  fpath, sys.exc_info()
-                pass
+            except OSError :
+                print  child, sys.exc_info()
+                pass    
 
-    def listing(self) :
-        return self.dirlisting
 
-    def getdirs(self, ls = None):
-        if ls is None:
-            ls = self.dirlisting
+class DirectoryTree(object) :
+    """ Tree representation of directory listing """
 
-        for each in ls:
-            if  ls[each]['type'] == 'dir':
-                yield each
-                self.getdirs(ls[each])
+    def __init__(self, path) :
+        state = os.stat(path)
+
+        if not S_ISDIR(state.st_mode) : 
+            raise Exception(topLevel + ' is not a directory')
+        
+        self.root = Directory(path, state)
+
+
+
 
 
 

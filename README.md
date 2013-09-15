@@ -1,4 +1,4 @@
-DirTree
+DirectoryTree
 ==========
 
 python directory tree object

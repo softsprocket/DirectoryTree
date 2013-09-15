@@ -6,7 +6,7 @@ import grp
 import time
 import re
 
-class Node(object) :
+class Node :
     """ Parent class for file and directories """
 
     def __init__(self, path, state) :
@@ -156,7 +156,7 @@ class Directory(Node) :
         return col               
                 
             
-class DirectoryTree(object) :
+class DirectoryTree :
     """ Tree representation of directory listing """
 
     def __init__(self, path) :

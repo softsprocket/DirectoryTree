@@ -126,13 +126,16 @@ class Directory(Node) :
                 pass    
 
     def __getitem__(self, name) :
+        """ return node with the param name """
         return self.nodes[name]
 
     def __iter__(self) :
+        """ iterator for contained nodes """
         return iter(self.nodes)
 
     def values(self) :
-        return self.node.values()
+        """ node values """
+        return self.nodes.values()
 
     def find(self, pattern, recurse = False, node = None, col = None) :
         """ Search the node names for pattern and return a list
@@ -155,7 +158,15 @@ class Directory(Node) :
 
         return col               
                 
-            
+    def directories (self) :
+        """ returns a generator for the directory objects """
+        return (self.nodes[x] for x in self.nodes if isinstance(self.nodes[x], Directory))
+
+    def files (self) :
+        """ returns a generator for the file objects """
+        return (self.nodes[x] for x in self.nodes if isinstance(self.nodes[x], File))
+
+             
 class DirectoryTree :
     """ Tree representation of directory listing """
 

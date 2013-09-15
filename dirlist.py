@@ -4,6 +4,7 @@ from stat import *
 import pwd
 import grp
 import time
+import re
 
 class Node(object) :
     """ Parent class for file and directories """
@@ -14,15 +15,28 @@ class Node(object) :
         self.state = state
 
     def ls(self) :
+        """ Print output for the node - similiar to 'ls -la' """
+
         print '%s %d %s %s %d %s %s' % (self.__lsmodes(self.state.st_mode), 
                                 self.state.st_nlink, 
                                 pwd.getpwuid(self.state.st_uid).pw_name, 
                                 grp.getgrgid(self.state.st_gid).gr_name,
                                 self.state.st_size,
-                                time.ctime(self.state.st_mtime),
+                                self.__maketime(time.localtime(self.state.st_mtime)),
                                 self.name)
 
 
+    def __maketime(self, tm) :
+        t = '%b %d '
+        now = time.localtime()
+        if tm.tm_year != now.tm_year :
+            t += '%Y '
+
+        t += '%H:%M:%S'
+
+        return time.strftime(t, tm)
+
+        
 
     def __lsmodes(self, mode) :
         ba = bytearray(' ' * 10)
@@ -92,8 +106,7 @@ class Directory(Node) :
     def __init__(self, path, state) :
         Node.__init__(self, path, state)
         
-        self.files = {}
-        self.directories = {}
+        self.nodes = {}
 
         for file in os.listdir(self.path) :
             child = self.path + '/' + file
@@ -102,9 +115,9 @@ class Directory(Node) :
                 st = os.stat(child)
 
                 if S_ISREG(st.st_mode) :
-                    self.files[file] = File(child, st)
+                    self.nodes[file] = File(child, st)
                 elif S_ISDIR(st.st_mode) :
-                    self.directories[file] = Directory(child, st)
+                    self.nodes[file] = Directory(child, st)
                 else :
                     print 'ignoring ' + child
 
@@ -112,7 +125,37 @@ class Directory(Node) :
                 print  child, sys.exc_info()
                 pass    
 
+    def __getitem__(self, name) :
+        return self.nodes[name]
 
+    def __iter__(self) :
+        return iter(self.nodes)
+
+    def values(self) :
+        return self.node.values()
+
+    def find(self, pattern, recurse = False, node = None, col = None) :
+        """ Search the node names for pattern and return a list
+            containing any matches. If recurse is set to True it seraches
+            all nodes beneath this in the tree as well
+        """
+        
+        if node is None :
+            node = self.nodes
+
+        if col is None :
+            col = []
+
+        for n in node :
+            if re.search(pattern, n) is not None :
+                col.append(node[n])
+    
+            if isinstance(node[n], Directory) :
+                self.find(pattern, recurse, node[n], col)
+
+        return col               
+                
+            
 class DirectoryTree(object) :
     """ Tree representation of directory listing """
 
@@ -125,7 +168,14 @@ class DirectoryTree(object) :
         self.root = Directory(path, state)
 
 
+    def walker (self, callback, node = None) :
+        """ Traverse the tree executing callback(node) at each node """
 
-
-
+        if node == None :
+            node = self.root
+        
+        for n in node :
+            callback(node[n])
+            if isinstance(node[n], Directory) :
+                self.walker(callback, node[n])
 
